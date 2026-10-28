@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>STARK PHONE</title>
+<style>
+:root{--c:#bfe9f2;--line:rgba(190,235,245,.75);--bg:rgba(20,50,62,.42)}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#0c1418;color:var(--c);font-family:"Segoe UI",sans-serif;overflow:hidden}
+#cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.7) brightness(.75);display:none}
+.tint{position:fixed;inset:0;background:radial-gradient(circle at 50% 40%,rgba(60,120,140,.22),rgba(5,15,20,.7))}
+.ui{position:fixed;inset:0;display:flex;flex-direction:column;gap:8px;padding:8px 14px 8px}
+.panel{border:1.5px solid var(--line);border-radius:14px;background:var(--bg);box-shadow:0 0 16px rgba(130,210,230,.2),inset 0 0 12px rgba(130,210,230,.1)}
+.bar{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.12em}
+main{flex:1;min-height:0;padding:10px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.dock{display:flex;justify-content:space-around;padding:2px 6px}
+.dock button{background:none;border:0;color:var(--c);width:54px;height:50px;padding:6px;filter:drop-shadow(0 0 4px var(--line))}
+.dock button svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dock button.on{color:#fff;filter:drop-shadow(0 0 8px #fff)}
+.dock button:active{transform:scale(.85)}
+h2{font-weight:300;font-size:15px;letter-spacing:.15em}
+input,select{background:transparent;border:0;border-bottom:1px solid var(--line);color:#fff;font-size:15px;padding:6px 2px;outline:0;width:100%}
+select option{color:#000}
+.btn{border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--c);padding:10px 16px;font-size:14px}
+.btn:active{background:rgba(190,235,245,.35)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
+.app{background:none;border:0;color:var(--c);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px}
+.app img{width:46px;height:46px}
+.app span{max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.big{font-size:54px;font-weight:200;letter-spacing:.08em}
+#log{font:10px/1.5 ui-monospace,Consolas,monospace;opacity:.85;flex:1;overflow:hidden}
+#log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.keys{display:grid;grid-template-columns:repeat(3,64px);gap:6px}
+.chat{flex:1;overflow:auto;font-size:13px;line-height:1.6}
+.chat p{margin-bottom:4px}.chat .me{color:#fff}
+canvas{width:100%;flex:1;min-height:0;border:1px solid var(--line);border-radius:10px;touch-action:none}
+#toast{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);padding:10px 18px;opacity:0;transition:opacity .25s;pointer-events:none;letter-spacing:.15em;background:rgba(10,30,40,.85)}
+#toast.show{opacity:1}
+
+main.scan{background:rgba(10,30,40,.12);border-color:transparent;box-shadow:none}
+.ret{position:relative;flex:1;min-height:60px;border:0}
+.ret i{position:absolute;width:34px;height:34px;border:3px solid var(--c)}
+.ret i:nth-child(1){left:6px;top:6px;border-right:0;border-bottom:0}.ret i:nth-child(2){right:6px;top:6px;border-left:0;border-bottom:0}
+.ret i:nth-child(3){left:6px;bottom:6px;border-right:0;border-top:0}.ret i:nth-child(4){right:6px;bottom:6px;border-left:0;border-top:0}
+.chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12px;background:var(--bg);color:var(--c)}
+#lock{position:fixed;inset:0;z-index:50;background:radial-gradient(circle at 30% 50%,#10303b,#05090c 70%);display:none;align-items:center;justify-content:center;gap:40px;touch-action:none}
+#lock.on{display:flex}
+.lkl{display:flex;flex-direction:column;align-items:center;gap:6px}
+#lkc{font-size:76px;font-weight:200;letter-spacing:.06em}
+#lkh{font-size:12px;letter-spacing:.2em;opacity:.8}
+.rx{width:120px;height:120px;animation:spin 14s linear infinite;stroke:var(--c);fill:none;stroke-width:1.6;filter:drop-shadow(0 0 8px var(--line))}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dots{display:flex;gap:10px;justify-content:center;margin-bottom:8px}.dots b{width:12px;height:12px;border:1.5px solid var(--line);border-radius:50%}.dots b.f{background:var(--c)}
+#lock .keys .btn{padding:8px}
+</style></head><body>
+<video id="cam" autoplay playsinline muted></video><div class="tint"></div>
+<div class="ui">
+  <div class="bar"><span id="who">STARK INDUSTRIES</span><span id="clock"></span><span id="tmini"></span><span id="lb" style="border:1px solid var(--line);padding:0 8px;border-radius:8px">LOCK</span></div>
+  <main id="main" class="panel"></main>
+  <nav class="dock panel" id="dock"></nav>
+</div>
+<div id="lock"><div class="lkl"><svg class="rx" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/><circle cx="24" cy="24" r="8"/><path d="M24 4v12M24 32v12M4 24h12M32 24h12M10 10l8 8M30 30l8 8M38 10l-8 8M18 30l-8 8"/></svg>
+<div id="lkc"></div><div id="lkd"></div><div id="lkh"></div></div><div id="lkp" style="display:none"><div class="dots" id="dots"></div><div class="keys" id="lkk" style="display:grid;grid-template-columns:repeat(3,60px);gap:6px"></div></div></div>
+<div id="toast" class="panel"></div>
+<script>
+const $=s=>document.querySelector(s),A=window.Android,main=$('#main');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const themes={cyan:['#bfe9f2','rgba(190,235,245,.75)'],gold:['#ffd98a','rgba(255,205,110,.8)'],red:['#ff9a8a','rgba(255,120,100,.8)']};
+let S=Object.assign({name:'',theme:'cyan',cam:false,lock:true,pin:''},JSON.parse(localStorage.getItem('sp')||'{}'));
+let stream;
+function camera(on){const v=$('#cam');if(on&&stream)return;if(!on){stream&&stream.getTracks().forEach(t=>t.stop());stream=null;v.srcObject=null;v.style.display='none';return}
+  navigator.mediaDevices&&navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(s=>{stream=s;v.srcObject=s;v.style.display='block'}).catch(()=>toast('CAMERA DENIED'))}
+function apply(){const t=themes[S.theme]||themes.cyan,r=document.documentElement.style;r.setProperty('--c',t[0]);r.setProperty('--line',t[1]);
+  $('#who').textContent=S.name?S.name.toUpperCase()+' / STARK OS':'STARK INDUSTRIES';camera(S.cam)}
+let tt;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1500)}
+const pad=n=>String(n).padStart(2,'0');
+setInterval(()=>{const d=new Date();$('#clock').textContent=pad(d.getHours())+':'+pad(d.getMinutes());const c=$('#bigclock');if(c)c.textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())},1000);
+
+// ---- icons (Iron Man style)
+const I={
+ apps:'<circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="7"/><path d="M24 6v11M24 31v11M6 24h11M31 24h11M11 11l8 8M29 29l8 8M37 11l-8 8M19 29l-8 8"/>',
+ phone:'<path d="M13 7l6 2-2 7c2 4 6 8 10 10l5-3 6 5-2 7C20 36 8 24 7 10z"/>',
+ web:'<circle cx="24" cy="24" r="17"/><ellipse cx="24" cy="24" rx="7" ry="17"/><path d="M7 24h34M10 14h28M10 34h28"/>',
+ timer:'<circle cx="24" cy="27" r="15"/><path d="M24 27V17M19 6h10M24 6v6M38 12l3-3"/>',
+ game:'<circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="8"/><path d="M24 16l7 12h-14z"/><path d="M24 3v4M24 41v4M3 24h4M41 24h4"/>',
+ scan:'<path d="M6 16V6h10M32 6h10v10M42 32v10H32M16 42H6V32"/><circle cx="24" cy="24" r="8"/><path d="M24 12v4M24 32v4M12 24h4M32 24h4"/>',
+ set:'<circle cx="24" cy="24" r="6"/><circle cx="24" cy="24" r="14" stroke-dasharray="6 5"/><circle cx="24" cy="24" r="18"/>'
+};
+const nav=[['apps','APPS'],['phone','PHONE'],['web','SEARCH'],['timer','TIMER'],['game','GAME'],['scan','SCAN'],['set','SETTINGS']];
+$('#dock').innerHTML=nav.map(([k,l])=>`<button data-k="${k}" title="${l}"><svg viewBox="0 0 48 48">${I[k]}</svg></button>`).join('');
+document.querySelectorAll('#dock button').forEach(b=>b.onclick=()=>go(b.dataset.k));
+
+// ---- timer
+let tEnd=0,tInt;
+function startTimer(sec){tEnd=Date.now()+sec*1000;clearInterval(tInt);tInt=setInterval(tick,250);tick()}
+function stopTimer(){tEnd=0;clearInterval(tInt);$('#tmini').textContent='';const e=$('#tt');if(e)e.textContent='00:00'}
+function tick(){const r=Math.max(0,Math.ceil((tEnd-Date.now())/1000)),s=pad(r/60|0)+':'+pad(r%60);
+  $('#tmini').textContent=tEnd?'⏱ '+s:'';const e=$('#tt');if(e)e.textContent=s;
+  if(tEnd&&r<=0){stopTimer();toast('TIMER COMPLETE');navigator.vibrate&&navigator.vibrate([400,200,400,200,400])}}
+
+// ---- views
+let apps=[];
+function loadApps(){try{apps=JSON.parse(A.apps())}catch(e){apps=[{n:'Demo',p:'x',i:''}]}}
+const V={};
+V.home=()=>{main.innerHTML=`<h2>${S.name?'おかえりなさい、'+esc(S.name):'WELCOME'}</h2><div class="big" id="bigclock"></div><div id="log"></div>`;
+  const hex=n=>[...Array(n)].map(()=>(Math.random()*16|0).toString(16)).join('');
+  const log=$('#log');const t=setInterval(()=>{if(!$('#log')){clearInterval(t);return}
+    const d=document.createElement('div');d.textContent=`TCP  ${hex(4)}:${hex(4)}  ${hex(8)}  ESTABLISHED`;log.appendChild(d);
+    while(log.scrollHeight>log.clientHeight+2&&log.firstChild)log.removeChild(log.firstChild)},450)};
+V.apps=()=>{if(!apps.length)loadApps();main.innerHTML=`<input id="q" placeholder="アプリを検索"><div class="grid" id="g"></div>`;
+  const g=$('#g'),draw=f=>{g.innerHTML='';apps.filter(a=>a.n.toLowerCase().includes(f)).forEach(a=>{const b=document.createElement('button');b.className='app';
+    b.innerHTML=`<img src="data:image/png;base64,${a.i}"><span>${esc(a.n)}</span>`;b.onclick=()=>A&&A.launch(a.p);g.appendChild(b)})};
+  draw('');$('#q').oninput=e=>draw(e.target.value.toLowerCase())};
+V.phone=()=>{main.innerHTML=`<div class="row" style="flex-wrap:nowrap;align-items:flex-start;gap:20px"><div class="keys" id="keys"></div>
+  <div style="flex:1"><input id="num" inputmode="tel" placeholder="電話番号" style="font-size:24px"><div class="row" style="margin-top:12px"><button class="btn" id="call">発信</button><button class="btn" id="del">⌫</button></div></div></div>`;
+  $('#keys').innerHTML='123456789*0#'.split('').map(k=>`<button class="btn">${k}</button>`).join('');
+  document.querySelectorAll('#keys .btn').forEach(b=>b.onclick=()=>$('#num').value+=b.textContent);
+  $('#del').onclick=()=>{const n=$('#num');n.value=n.value.slice(0,-1)};
+  $('#call').onclick=()=>{const n=$('#num').value.trim();if(n)A?A.dial(n):toast('ANDROIDアプリで使えます')}};
+function search(q){if(!q)return;const u=/^https?:\/\//.test(q)?q:'https://www.google.com/search?q='+encodeURIComponent(q);A?A.openWeb(u):window.open(u)}
+V.web=()=>{main.innerHTML=`<h2>SEARCH</h2><input id="sq" placeholder="調べたいこと / URL"><div class="row"><button class="btn" id="sg">検索</button></div>`;
+  $('#sg').onclick=()=>search($('#sq').value.trim());$('#sq').onkeydown=e=>{if(e.key==='Enter')search(e.target.value.trim())}};
+V.timer=()=>{main.innerHTML=`<h2>TIMER</h2><div class="big" id="tt">00:00</div><div class="row" id="pre"></div><div class="row"><input id="tm" type="number" min="1" placeholder="分" style="width:90px"><button class="btn" id="ts">開始</button><button class="btn" id="tx">停止</button></div>`;
+  $('#pre').innerHTML=[1,3,5,10].map(m=>`<button class="btn" data-m="${m}">${m}分</button>`).join('');
+  document.querySelectorAll('#pre .btn').forEach(b=>b.onclick=()=>startTimer(b.dataset.m*60));
+  $('#ts').onclick=()=>{const m=parseFloat($('#tm').value);if(m>0)startTimer(m*60)};$('#tx').onclick=stopTimer;tick()};
+V.game=()=>{main.innerHTML=`<div class="row"><h2>REPULSOR TARGET</h2><span id="sc"></span><button class="btn" id="gs">スタート</button></div><canvas id="cv"></canvas>`;
+  const cv=$('#cv'),x=cv.getContext('2d');let run=0,score=0,tg=null,end=0,best=+localStorage.getItem('spbest')||0;
+  const fit=()=>{cv.width=cv.clientWidth;cv.height=cv.clientHeight};fit();
+  const spawn=()=>{tg={x:30+Math.random()*(cv.width-60),y:30+Math.random()*(cv.height-60),r:26,t:Date.now()}};
+  const draw=()=>{if(!$('#cv'))return;x.clearRect(0,0,cv.width,cv.height);const l=Math.max(0,(end-Date.now())/1000);
+    if(run&&l<=0){run=0;if(score>best){best=score;localStorage.setItem('spbest',best)}}
+    $('#sc').textContent=`SCORE ${score}  BEST ${best}  ${run?l.toFixed(1)+'s':''}`;
+    if(run&&tg){if(Date.now()-tg.t>1200)spawn();x.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--c');x.lineWidth=2;
+      [1,.6,.25].forEach(k=>{x.beginPath();x.arc(tg.x,tg.y,tg.r*k,0,7);x.stroke()})}
+    requestAnimationFrame(draw)};
+  cv.onpointerdown=e=>{if(!run||!tg)return;const r=cv.getBoundingClientRect(),px=(e.clientX-r.left)*cv.width/r.width,py=(e.clientY-r.top)*cv.height/r.height;
+    if(Math.hypot(px-tg.x,py-tg.y)<tg.r+8){score++;spawn()}};
+  $('#gs').onclick=()=>{fit();score=0;run=1;end=Date.now()+20000;spawn()};draw()};
+
+// ---------- 3Dモデル
+const M={
+phone:{n:'スマートフォン',p:[['背面カバー','b',[0,0,-.2],[1.2,2.4,.06],[0,0,-1.6]],['バッテリー','b',[0,-.2,-.12],[.9,1.2,.08],[0,0,-1]],['基板','b',[0,.7,-.05],[1,.8,.05],[0,0,-.4]],['カメラ','z',[.35,1,-.12],[.15,.1],[.5,.2,-.6]],['ディスプレイ','b',[0,0,.05],[1.1,2.2,.05],[0,0,.4]],['ガラス','b',[0,0,.12],[1.2,2.4,.04],[0,0,1]]]},
+laptop:{n:'ノートPC',p:[['底板','b',[0,-.08,0],[2.4,.05,1.6],[0,-1.3,0]],['バッテリー','b',[0,-.02,.4],[1.4,.05,.4],[0,-.8,.2]],['基板','b',[0,.03,-.2],[1.6,.04,.7],[0,-.3,-.3]],['ファン','y',[.8,.03,-.2],[.25,.05],[.6,.1,-.6]],['キーボード','b',[0,.09,.1],[2.2,.03,1.1],[0,.6,.2]],['画面','b',[0,.9,-.85],[2.4,1.5,.06],[0,.8,-.8]]]},
+headphones:{n:'ヘッドホン',p:[['ヘッドバンド','b',[0,1.3,0],[2,.1,.25],[0,.9,0]],['左バンド','b',[-1,.75,0],[.1,1.1,.25],[-.5,.4,0]],['右バンド','b',[1,.75,0],[.1,1.1,.25],[.5,.4,0]],['左ハウジング','x',[-1.15,0,0],[.55,.3],[-1.2,0,0]],['左ドライバー','x',[-.9,0,0],[.4,.08],[-.5,0,0]],['右ハウジング','x',[1.15,0,0],[.55,.3],[1.2,0,0]],['右ドライバー','x',[.9,0,0],[.4,.08],[.5,0,0]]]},
+watch:{n:'腕時計',p:[['裏蓋','z',[0,0,-.17],[.75,.04],[0,0,-1.2]],['バッテリー','z',[0,0,-.1],[.5,.05],[0,0,-.7]],['ケース','z',[0,0,0],[.8,.25],[0,0,0]],['文字盤','z',[0,0,.1],[.65,.04],[0,0,.5]],['ガラス','z',[0,0,.17],[.75,.05],[0,0,1.1]],['ベルト上','b',[0,1.3,0],[.6,1,.12],[0,.9,0]],['ベルト下','b',[0,-1.3,0],[.6,1,.12],[0,-.9,0]]]},
+cup:{n:'コップ',p:[['底','y',[0,-.62,0],[.7,.05],[0,-.9,0]],['本体','y',[0,0,0],[.7,1.2],[0,0,0]],['飲み物','y',[0,-.1,0],[.6,.9],[0,.9,0]],['取っ手','b',[.85,0,0],[.15,.7,.12],[1,0,0]]]},
+bottle:{n:'ボトル',p:[['底','y',[0,-.95,0],[.5,.08],[0,-1.6,0]],['中身','y',[0,-.1,0],[.42,1.4],[0,-.7,0]],['本体','y',[0,0,0],[.5,1.8],[0,0,0]],['ラベル','y',[0,0,0],[.53,.7],[1.1,0,0]],['キャップ','y',[0,1.05,0],[.25,.3],[0,1.3,0]]]},
+chair:{n:'いす',p:[['座面','b',[0,0,0],[1.4,.12,1.4],[0,.3,0]],['背もたれ','b',[0,.9,-.65],[1.4,1.2,.1],[0,.6,-.8]],['脚(左前)','b',[-.6,-.6,.6],[.1,1.1,.1],[-.8,-.7,.8]],['脚(右前)','b',[.6,-.6,.6],[.1,1.1,.1],[.8,-.7,.8]],['脚(左奥)','b',[-.6,-.6,-.6],[.1,1.1,.1],[-.8,-.7,-.8]],['脚(右奥)','b',[.6,-.6,-.6],[.1,1.1,.1],[.8,-.7,-.8]]]},
+generic:{n:'不明な物体(汎用)',p:[['外装(上)','b',[0,.8,0],[1.6,.05,1.6],[0,1.2,0]],['外装(本体)','b',[0,0,0],[1.6,1.5,1.6],[0,0,0]],['内部','b',[0,0,0],[.9,.9,.9],[0,.1,0]],['コア','y',[0,0,0],[.3,.7],[0,-1.3,0]]]}};
+const JP={'mobile phone':'携帯電話','phone':'電話','telephone':'電話','laptop':'ノートPC','computer':'コンピューター','headphones':'ヘッドホン','headset':'ヘッドセット','watch':'腕時計','clock':'時計','cup':'カップ','mug':'マグカップ','coffee cup':'コーヒーカップ','bottle':'ボトル','water bottle':'水筒','chair':'いす','furniture':'家具','table':'テーブル','cat':'ネコ','dog':'イヌ','shoe':'くつ','car':'車','bicycle':'自転車','plant':'植物','food':'食べ物','pen':'ペン','book':'本','hand':'手','finger':'指','person':'人','face':'顔'};
+const KEYS=[[/phone|telephone|gadget/,'phone'],[/laptop|notebook|computer|keyboard/,'laptop'],[/headphone|headset|earphone/,'headphones'],[/watch|wrist/,'watch'],[/cup|mug|coffee/,'cup'],[/bottle/,'bottle'],[/chair/,'chair']];
+function pick(labels){for(const l of labels){const t=l.t.toLowerCase();for(const [re,k] of KEYS)if(re.test(t))return k}return 'generic'}
+function geom(t,pos,sz){const v=[],e=[];
+  if(t==='b'){const [w,h,d]=sz.map(x=>x/2);for(const x of[-w,w])for(const y of[-h,h])for(const z of[-d,d])v.push([x,y,z]);
+    [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]].forEach(q=>e.push(q))}
+  else{const n=14,[r,h]=sz;for(let k=0;k<2;k++)for(let i=0;i<n;i++){const a=i/n*6.2832,c=r*Math.cos(a),s=r*Math.sin(a),o=k?h/2:-h/2;
+      v.push(t==='y'?[c,o,s]:t==='z'?[c,s,o]:[o,c,s])}
+    for(let k=0;k<2;k++)for(let i=0;i<n;i++)e.push([k*n+i,k*n+(i+1)%n]);for(let i=0;i<n;i+=2)e.push([i,n+i])}
+  return {v:v.map(q=>[q[0]+pos[0],q[1]+pos[1],q[2]+pos[2]]),e}}
+let v3t=0;
+function open3d(key,label){const m=M[key]||M.generic;
+  main.classList.remove('scan');
+  main.innerHTML=`<div class="row"><button class="btn" id="vb">← 戻る</button><b>${esc(m.n)}</b><span style="opacity:.7;font-size:11px">${esc(label||'')}</span><button class="btn" id="vx">分解</button><button class="btn" id="va">回転 ON</button></div><canvas id="v3"></canvas>`;
+  const cv=$('#v3'),x=cv.getContext('2d');let ax=-.35,ay=.6,ex=0,tgt=0,auto=true,drag=null;const id=++v3t;
+  const parts=m.p.map(p=>({name:p[0],g:geom(p[1],p[2],p[3]),ex:p[4]}));
+  const fit=()=>{cv.width=cv.clientWidth;cv.height=cv.clientHeight};fit();
+  $('#vb').onclick=()=>go('scan');$('#vx').onclick=()=>{tgt=tgt?0:1;$('#vx').textContent=tgt?'組立':'分解'};
+  $('#va').onclick=()=>{auto=!auto;$('#va').textContent=auto?'回転 ON':'回転 OFF'};
+  cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId)};
+  cv.onpointermove=e=>{if(!drag)return;ay+=(e.clientX-drag[0])*.01;ax+=(e.clientY-drag[1])*.01;ax=Math.max(-1.4,Math.min(1.4,ax));drag=[e.clientX,e.clientY]};
+  cv.onpointerup=()=>drag=null;
+  const col=getComputedStyle(document.documentElement).getPropertyValue('--c');
+  (function loop(){if(id!==v3t||!$('#v3'))return;if(!cv.width||cv.width!==cv.clientWidth)fit();
+    ex+=(tgt-ex)*.12;if(auto&&!drag)ay+=.012;
+    const W=cv.width,H=cv.height,u=Math.min(W,H)/4.6,cy=Math.cos(ay),sy=Math.sin(ay),cx=Math.cos(ax),sx=Math.sin(ax);
+    x.clearRect(0,0,W,H);x.lineWidth=1.6;x.font='12px sans-serif';x.fillStyle=col;
+    const P=q=>{let X=q[0]*cy+q[2]*sy,Z=-q[0]*sy+q[2]*cy,Y=q[1]*cx-Z*sx;Z=q[1]*sx+Z*cx;const s=7/(7-Z);return [W/2+X*u*s,H/2-Y*u*s,Z]};
+    parts.forEach((p,i)=>{x.strokeStyle=col;x.globalAlpha=i%2?.75:1;const o=p.ex.map(k=>k*ex*1.1),pv=p.g.v.map(q=>P([q[0]+o[0],q[1]+o[1],q[2]+o[2]]));
+      x.beginPath();p.g.e.forEach(([a,b])=>{x.moveTo(pv[a][0],pv[a][1]);x.lineTo(pv[b][0],pv[b][1])});x.stroke();
+      if(ex>.3){x.globalAlpha=Math.min(1,(ex-.3)*2);const c=P([o[0]+p.g.v.reduce((s,q)=>s+q[0],0)/p.g.v.length,o[1]+p.g.v.reduce((s,q)=>s+q[1],0)/p.g.v.length,o[2]+p.g.v.reduce((s,q)=>s+q[2],0)/p.g.v.length]);x.fillText(p.name,c[0]+6,c[1])}});
+    x.globalAlpha=1;requestAnimationFrame(loop)})()}
+// ---------- スキャン
+window.scanResult=arr=>{const el=$('#sres');if(!el)return;$('#sb').disabled=false;
+  if(!arr.length){el.innerHTML='<span>何も判別できませんでした。もう一度か、下から選んでください。</span>';return}
+  const key=pick(arr),top=arr.map(l=>(JP[l.t.toLowerCase()]||l.t)+' '+Math.round(l.c*100)+'%').join(' / ');
+  el.innerHTML=`<span>${esc(top)}</span>`;setTimeout(()=>{if($('#sres'))open3d(key,top.split(' / ')[0])},900)};
+V.scan=()=>{camera(true);main.classList.add('scan');
+  main.innerHTML=`<div class="ret"><i></i><i></i><i></i><i></i></div><div id="sres" style="font-size:12px;min-height:16px">物にカメラを向けて「スキャン」を押してください</div>
+  <div class="row"><button class="btn" id="sb">スキャン</button><span style="font-size:11px;opacity:.7">手動で選ぶ:</span>${Object.keys(M).map(k=>`<button class="chip" data-k="${k}">${esc(M[k].n)}</button>`).join('')}</div>`;
+  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>open3d(b.dataset.k,'手動選択'));
+  $('#sb').onclick=()=>{const v=$('#cam');if(!A){scanResult([{t:'Mobile phone',c:.9}]);return}
+    if(!v.videoWidth){toast('CAMERA NOT READY');return}
+    const c=document.createElement('canvas');c.width=640;c.height=Math.round(v.videoHeight*640/v.videoWidth);c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+    $('#sb').disabled=true;$('#sres').textContent='スキャン中…';A.scan(c.toDataURL('image/jpeg',.8).split(',')[1])}};
+// ---------- ロック画面
+const hash=p=>btoa('stark'+p);let ent='';
+function lock(){if(!S.lock)return;ent='';const L=$('#lock');L.classList.add('on');$('#lkp').style.display=S.pin?'block':'none';
+  $('#lkh').textContent=S.pin?'PINを入力':'上にスワイプして解除';drawDots();lkTick()}
+function unlock(){$('#lock').classList.remove('on')}
+function lkTick(){const d=new Date();$('#lkc').textContent=pad(d.getHours())+':'+pad(d.getMinutes());$('#lkd').textContent=(d.getMonth()+1)+'月'+d.getDate()+'日 '+'日月火水木金土'[d.getDay()]+'曜日'}
+setInterval(lkTick,5000);
+function drawDots(){$('#dots').innerHTML=[0,1,2,3].map(i=>`<b class="${i<ent.length?'f':''}"></b>`).join('')}
+$('#lkk').innerHTML='123456789C0⌫'.split('').map(k=>`<button class="btn">${k}</button>`).join('');
+document.querySelectorAll('#lkk .btn').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.textContent;
+  if(k==='C')ent='';else if(k==='⌫')ent=ent.slice(0,-1);else if(ent.length<4)ent+=k;drawDots();
+  if(ent.length===4){if(hash(ent)===S.pin)unlock();else{toast('PIN違い');ent='';drawDots()}}});
+let sy0=null;$('#lock').onpointerdown=e=>sy0=e.clientY;
+$('#lock').onpointerup=e=>{if(!S.pin&&sy0!==null&&sy0-e.clientY>90)unlock();sy0=null};
+$('#lb').onclick=lock;
+// ---------- 設定
+V.set=()=>{main.innerHTML=`<h2>SETTINGS</h2><div class="row"><input id="sn" placeholder="呼ばれたい名前" value="${esc(S.name)}" style="max-width:220px">
+  <select id="st" style="max-width:120px"><option value="cyan">ブルー</option><option value="gold">ゴールド</option><option value="red">レッド</option></select>
+  <label><input type="checkbox" id="sc" style="width:auto" ${S.cam?'checked':''}> カメラ背景</label>
+  <label><input type="checkbox" id="sl" style="width:auto" ${S.lock?'checked':''}> ロック画面</label>
+  <input id="sp" inputmode="numeric" maxlength="4" placeholder="新しいPIN(数字4桁)" style="max-width:170px"><button class="btn" id="pc">PINを消す</button></div>
+  <div style="font-size:10px;opacity:.7">ロック画面は見た目のロックです。本物の保護にはスマホ本体のロックを併用してください。</div>
+  <div class="row"><button class="btn" id="sv">保存</button><button class="btn" id="dl">保存データを全て削除</button></div>`;
+  $('#st').value=S.theme;
+  $('#sv').onclick=()=>{const p=$('#sp').value.trim();if(p&&!/^\d{4}$/.test(p)){toast('PINは数字4桁');return}
+    S={name:$('#sn').value.trim(),theme:$('#st').value,cam:$('#sc').checked,lock:$('#sl').checked,pin:p?hash(p):S.pin};
+    localStorage.setItem('sp',JSON.stringify(S));apply();toast('SAVED')};
+  $('#pc').onclick=()=>{S.pin='';localStorage.setItem('sp',JSON.stringify(S));toast('PINを消しました')};
+  $('#dl').onclick=()=>{if(confirm('設定・PIN・ゲームのベストなど全て削除します。よろしいですか?')){localStorage.clear();S={name:'',theme:'cyan',cam:false,lock:true,pin:''};apply();toast('DELETED');V.set()}}};
+let cur='home';
+function go(k){if(cur==='scan'&&k!=='scan'){main.classList.remove('scan');camera(S.cam)}cur=k;v3t++;
+  document.querySelectorAll('#dock button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));V[k]()}
+apply();go('home');
+</script></body></html>
